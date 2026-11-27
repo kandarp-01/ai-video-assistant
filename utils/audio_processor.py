@@ -3,23 +3,50 @@ from pydub import AudioSegment
 import os 
 DOWNLOAD_DIR='downloads'
 os.makedirs(DOWNLOAD_DIR,exist_ok=True)
+import uuid
 
-def download_youtube_audio(url :str) -> str:
-    output_path = os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s')
+def download_youtube_audio(url: str) -> str:
+
+    output_path = os.path.join(
+        DOWNLOAD_DIR,
+        f"{uuid.uuid4()}_%(title)s.%(ext)s"
+    )
+
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_path,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'wav',
-            'preferredquality': '192',
+        "format": "bestaudio/best",
+        "outtmpl": output_path,
+
+        # JavaScript challenge support
+        "js_runtimes": {
+            "deno": {}
+        },
+
+        "remote_components": ["ejs:github"],
+
+        # Audio conversion
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "wav",
+            "preferredquality": "192",
         }],
-        "quiet": True
+
+        "noplaylist": True,
+        "quiet": False,
     }
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info=ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info).replace('.webm', '.wav').replace('.m4a', '.wav')
-    return filename
+        info = ydl.extract_info(url, download=True)
+
+        filename = ydl.prepare_filename(info)
+
+        audio_path = os.path.splitext(filename)[0] + ".wav"
+
+    if not os.path.exists(audio_path):
+        raise FileNotFoundError(
+            f"Converted audio file not found: {audio_path}"
+        )
+
+    return audio_path
 
 
 def convert_to_wav(input_path:str)-> str:
@@ -42,8 +69,9 @@ def chunk_audio(wav_path:str, chunk_minutes:int=10)-> list:
         chunks.append(chunk_path)
     return chunks
 
-def process_youtube_audio(url:str)-> list:
-    if url.startswith('http'):
+def process_youtube_audio(url: str) -> list:
+
+    if url.startswith(("http://", "https://")):
         audio_path = download_youtube_audio(url)
     else:
         audio_path = convert_to_wav(url)
