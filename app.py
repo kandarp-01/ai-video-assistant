@@ -99,7 +99,7 @@ html, body, [class*="css"] {
     color: var(--text);
 }
 
-#MainMenu, footer, header {
+#MainMenu, footer {
     visibility: hidden;
 }
 
